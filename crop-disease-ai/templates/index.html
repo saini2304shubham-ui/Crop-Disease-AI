@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FarmAI — Crop Disease Detector</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>🌾 FarmAI</h1>
+    <p>Crop Disease Detector for Indian Farmers</p>
+  </div>
+
+  <div class="upload-box">
+    <input type="file" id="imageInput" accept="image/*">
+    <label for="imageInput">📷 Choose a Crop Photo</label>
+    <img id="preview" src="" alt="Preview">
+  </div>
+
+  <button id="analyzeBtn" onclick="analyze()">🔍 Analyze My Crop</button>
+
+  <div id="loading">⏳ Analyzing... please wait</div>
+
+  <div id="results">
+    <div class="card">
+      <div class="card-title">🦠 Disease Detected</div>
+      <div id="diseaseText" class="big-text"></div>
+      <div id="confidenceText" class="muted"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔬 Explainability Heatmap</div>
+      <p class="muted">Red/yellow areas show where AI focused</p>
+      <img id="heatmapImg" src="" alt="Heatmap" class="heatmap">
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Severity and Yield Loss</div>
+      <p id="severityText"></p>
+      <p id="yieldText"></p>
+    </div>
+    <div class="card">
+      <div class="card-title">💊 Treatment in English</div>
+      <p id="treatmentEn"></p>
+    </div>
+    <div class="card">
+      <div class="card-title">💊 उपचार सलाह Hindi में</div>
+      <p id="treatmentHi"></p>
+    </div>
+  </div>
+
+</div>
+<script>
+  const input   = document.getElementById('imageInput');
+  const preview = document.getElementById('preview');
+  const loading = document.getElementById('loading');
+  const results = document.getElementById('results');
+
+  loading.style.display = 'none';
+  results.style.display = 'none';
+
+  input.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      preview.src = ev.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  async function analyze() {
+    if (!input.files[0]) {
+      alert('Please select an image first!');
+      return;
+    }
+    loading.style.display = 'block';
+    results.style.display = 'none';
+
+    const fd = new FormData();
+    fd.append('image', input.files[0]);
+
+    try {
+      const res  = await fetch('/analyze', { method: 'POST', body: fd });
+      const data = await res.json();
+
+      document.getElementById('diseaseText').textContent    = data.disease;
+      document.getElementById('confidenceText').textContent = 'Confidence: ' + data.confidence + '%';
+      document.getElementById('severityText').textContent   = 'Severity: ' + data.severity;
+      document.getElementById('yieldText').textContent      = 'Estimated Yield Loss: ' + data.yield_loss;
+      document.getElementById('treatmentEn').textContent    = data.treatment_en;
+      document.getElementById('treatmentHi').textContent    = data.treatment_hi;
+      document.getElementById('heatmapImg').src             = data.heatmap + '?t=' + Date.now();
+
+      loading.style.display = 'none';
+      results.style.display = 'block';
+    } catch(err) {
+      alert('Something went wrong. Make sure server is running.');
+      loading.style.display = 'none';
+    }
+  }
+</script>
+</body>
+</html>
